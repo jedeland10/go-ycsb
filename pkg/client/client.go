@@ -39,6 +39,7 @@ type worker struct {
 	threadID        int
 	targetOpsTickNs int64
 	opsDone         int64
+	keySize         int64
 }
 
 func newWorker(p *properties.Properties, threadID int, threadCount int, workload ycsb.Workload, db ycsb.DB) *worker {
@@ -123,7 +124,6 @@ func (w *worker) run(ctx context.Context) {
 		opsCount := 1
 		if w.doTransactions {
 			if w.doBatch {
-				err = w.workload.DoBatchTransaction(ctx, w.batchSize, w.workDB)
 				opsCount = w.batchSize
 			} else {
 				err = w.workload.DoTransaction(ctx, w.workDB)

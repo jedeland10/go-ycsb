@@ -34,9 +34,8 @@ const (
 	DoTransactions     = "dotransactions"
 	Status             = "status"
 	Label              = "label"
-	// batch mode
-	BatchSize        = "batch.size"
-	DefaultBatchSize = int(1)
+	BatchSize          = "batch.size"
+	DefaultBatchSize   = int(1)
 
 	TableName         = "table"
 	TableNameDefault  = "usertable"
@@ -108,6 +107,9 @@ const (
 
 	KeyPrefix        = "keyprefix"
 	KeyPrefixDefault = "user"
+
+	KeySize        = "keysize"
+	KeySizeDefault = int64(64)
 
 	LogInterval = "measurement.interval"
 

@@ -161,12 +161,33 @@ func (c *core) Close() error {
 }
 
 func (c *core) buildKeyName(keyNum int64) string {
+	// If unordered inserts, hash the key number.
 	if !c.orderedInserts {
 		keyNum = util.Hash64(keyNum)
 	}
 
+	// Get the prefix from properties.
 	prefix := c.p.GetString(prop.KeyPrefix, prop.KeyPrefixDefault)
-	return fmt.Sprintf("%s%0[3]*[2]d", prefix, keyNum, c.zeroPadding)
+
+	keySize := c.p.GetInt64(prop.KeySize, prop.KeySizeDefault)
+
+	// Calculate how many digits we have left for the numeric part.
+	remaining := int(keySize) - len(prefix)
+	var numPart string
+	if remaining > 0 {
+		numPart = fmt.Sprintf("%0*d", remaining, keyNum)
+	} else {
+		numPart = ""
+	}
+
+	key := prefix + numPart
+
+	if len(key) < int(keySize) {
+		key += strings.Repeat("0", int(keySize)-len(key))
+	} else if len(key) > int(keySize) {
+		key = key[:keySize]
+	}
+	return key
 }
 
 func (c *core) buildSingleValue(state *coreState, key string) map[string][]byte {

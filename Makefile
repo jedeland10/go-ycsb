@@ -17,10 +17,6 @@ endif
 
 ifndef CROSS_COMPILE
 
-ifeq ($(SQLITE_CHECK), 0)
-	TAGS += libsqlite3
-endif
-
 ifeq ($(ROCKSDB_CHECK), 0)
 	TAGS += rocksdb
 	CGO_CXXFLAGS := "${CGO_CXXFLAGS} -std=c++11"
