@@ -20,7 +20,7 @@ output_file="${output_file_path}/${keysize}_${run_index}.txt"
 > "$output_file"
 
 
-./bin/ycsb run etcd -P workloads/workload_write \
+./bin/go-ycsb run etcd -P workloads/workload_write \
     -p etcd.endpoints="$endpoint"
     -p keypsize="$keysize" \
     -p threadcount="$thread_count" \
