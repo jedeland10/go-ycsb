@@ -17,6 +17,5 @@ echo "TEST Performing load phase..."
     -p recordcount="$record_count" \
     -p threadcount="$thread_count" \
     -p keysize="$keysize" \
-    -p insertproportion=1 -p updateproportion=0 2>&1 \
-   | grep -E '^\[OVERALL\]|^\[INSERT\]' 
+    -p insertproportion=1 -p updateproportion=0 | grep -E '^(INSERT|TOTAL)'
 
