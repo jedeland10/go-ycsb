@@ -198,7 +198,7 @@ func (c *Client) Run(ctx context.Context) {
 		for {
 			select {
 			case <-t.C:
-				measurement.Summary()
+				//measurement.Summary()
 			case <-measureCtx.Done():
 				return
 			}
