@@ -21,10 +21,10 @@ output_file="${output_file_path}/${keysize}_${run_index}.txt"
 
 
 ./bin/go-ycsb run etcd -P workloads/workload_write \
-    -p etcd.endpoints="$endpoint"
+    -p etcd.endpoints="$endpoint" \
     -p keypsize="$keysize" \
     -p threadcount="$thread_count" \
     -p recordcount="$record_count" -p operationcount="$operation_count" 2>&1 \
-    | grep -E '^\[OVERALL\]|^\[UPDATE\]' | tee -a "$output_file"
+    grep -E '^(INSERT|TOTAL)' | tee -a "$output_file"
 
 echo "---------------------------------------" | tee -a "$output_file"
