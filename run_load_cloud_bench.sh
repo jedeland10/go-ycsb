@@ -13,7 +13,7 @@ thread_count="$4"
 echo "TEST Performing load phase..." 
 
 ./bin/go-ycsb load etcd -P workloads/workload_write \
-    -p endpoints="$endpoint" \
+    -p etcd.endpoints="$endpoint" \
     -p recordcount="$record_count" \
     -p threadcount="$thread_count" \
     -p keysize="$keysize" \
