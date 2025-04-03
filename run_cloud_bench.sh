@@ -25,6 +25,6 @@ output_file="${output_file_path}/${keysize}_${run_index}.txt"
     -p keypsize="$keysize" \
     -p threadcount="$thread_count" \
     -p recordcount="$record_count" -p operationcount="$operation_count" 2>&1 \
-    grep -E '^(INSERT|TOTAL)' | tee -a "$output_file"
+    | grep -E '^(INSERT|TOTAL)' | tee -a "$output_file"
 
 echo "---------------------------------------" | tee -a "$output_file"
