@@ -193,17 +193,7 @@ func (c *core) buildKeyName(keyNum int64) string {
 func (c *core) buildSingleValue(state *coreState, key string) map[string][]byte {
 	values := make(map[string][]byte, 1)
 
-	r := state.r
-	fieldKey := state.fieldNames[c.fieldChooser.Next(r)]
-
-	var buf []byte
-	if c.dataIntegrity {
-		buf = c.buildDeterministicValue(state, key, fieldKey)
-	} else {
-		buf = c.buildRandomValue(state)
-	}
-
-	values[fieldKey] = buf
+	values["1"] = []byte("1")
 
 	return values
 }
@@ -211,16 +201,7 @@ func (c *core) buildSingleValue(state *coreState, key string) map[string][]byte 
 func (c *core) buildValues(state *coreState, key string) map[string][]byte {
 	values := make(map[string][]byte, c.fieldCount)
 
-	for _, fieldKey := range state.fieldNames {
-		var buf []byte
-		if c.dataIntegrity {
-			buf = c.buildDeterministicValue(state, key, fieldKey)
-		} else {
-			buf = c.buildRandomValue(state)
-		}
-
-		values[fieldKey] = buf
-	}
+	values["1"] = []byte("1")
 	return values
 }
 

@@ -19,11 +19,11 @@ output_file="${output_file_path}/${keysize}_${run_index}.txt"
 > "$output_file"
 
 
-./bin/go-ycsb run etcd -P workloads/workload_write \
-    -p etcd.endpoints="$endpoint" \
+./bin/go-ycsb run raft -P workloads/workload_write \
+    -p raft.address="$endpoint" \
     -p keysize="$keysize" \
     -p threadcount="$thread_count" \
-    -p recordcount="$record_count" -p operationcount="$operation_count" 2>&1 \
-    | grep -E '^(UPDATE|TOTAL)' | tee -a "$output_file"
+    -p recordcount="$record_count" -p operationcount="$operation_count" #2>&1 \
+    #| grep -E '^(UPDATE|TOTAL)' | tee -a "$output_file"
 
 echo "---------------------------------------" | tee -a "$output_file"
