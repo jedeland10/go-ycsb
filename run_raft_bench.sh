@@ -21,6 +21,7 @@ output_file="${output_file_path}/${keysize}_${run_index}.txt"
 
 ./bin/go-ycsb run raft -P workloads/workload_write \
     -p raft.address="$endpoint" \
+    -p maxexecutiontime=180 \
     -p keysize="$keysize" \
     -p threadcount="$thread_count" \
     -p recordcount="$record_count" -p operationcount="$operation_count" 2>&1 \
