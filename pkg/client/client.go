@@ -168,29 +168,37 @@ func NewClient(p *properties.Properties, workload ycsb.Workload, db ycsb.DB) *Cl
 }
 
 // Run runs the workload to the target DB, and blocks until all workers end.
-func (c *Client) Run(ctx context.Context) {
+func (c *Client) Run(origCtx context.Context) {
+	maxSec := c.p.GetInt64(prop.MaxExecutiontime, 0)
+	ctx := origCtx
+	var cancelTimeout func()
+	if maxSec > 0 {
+		ctx, cancelTimeout = context.WithTimeout(origCtx, time.Duration(maxSec)*time.Second)
+		defer cancelTimeout()
+	}
+	fmt.Println("maxExec", maxSec)
+
 	var wg sync.WaitGroup
 	threadCount := c.p.GetInt(prop.ThreadCount, 1)
 
 	wg.Add(threadCount)
 	measureCtx, measureCancel := context.WithCancel(ctx)
 	measureCh := make(chan struct{}, 1)
+
 	go func() {
-		defer func() {
-			measureCh <- struct{}{}
-		}()
-		// load stage no need to warm up
+		defer func() { measureCh <- struct{}{} }()
+
+		// warm‑up
 		if c.p.GetBool(prop.DoTransactions, true) {
 			dur := c.p.GetInt64(prop.WarmUpTime, 0)
 			select {
-			case <-ctx.Done():
+			case <-ctx.Done(): // will also fire on timeout
 				return
 			case <-time.After(time.Duration(dur) * time.Second):
 			}
 		}
-		// finish warming up
-		measurement.EnableWarmUp(false)
 
+		measurement.EnableWarmUp(false)
 		dur := c.p.GetInt64(prop.LogInterval, 10)
 		t := time.NewTicker(time.Duration(dur) * time.Second)
 		defer t.Stop()
@@ -199,7 +207,7 @@ func (c *Client) Run(ctx context.Context) {
 			select {
 			case <-t.C:
 				//measurement.Summary()
-			case <-measureCtx.Done():
+			case <-measureCtx.Done(): // will fire if timeout or client shutdown
 				return
 			}
 		}
@@ -210,21 +218,21 @@ func (c *Client) Run(ctx context.Context) {
 			defer wg.Done()
 
 			w := newWorker(c.p, threadId, threadCount, c.workload, c.db)
-			ctx := c.workload.InitThread(ctx, threadId, threadCount)
-			ctx = c.db.InitThread(ctx, threadId, threadCount)
-			w.run(ctx)
-			c.db.CleanupThread(ctx)
-			c.workload.CleanupThread(ctx)
+			threadCtx := c.workload.InitThread(ctx, threadId, threadCount)
+			threadCtx = c.db.InitThread(threadCtx, threadId, threadCount)
+			w.run(threadCtx) // your worker loop should respect threadCtx.Done()
+			c.db.CleanupThread(threadCtx)
+			c.workload.CleanupThread(threadCtx)
 		}(i)
 	}
 
 	wg.Wait()
 	if !c.p.GetBool(prop.DoTransactions, true) {
-		// when loading is finished, try to analyze table if possible.
 		if analyzeDB, ok := c.db.(ycsb.AnalyzeDB); ok {
 			analyzeDB.Analyze(ctx, c.p.GetString(prop.TableName, prop.TableNameDefault))
 		}
 	}
+
 	measureCancel()
 	<-measureCh
 }

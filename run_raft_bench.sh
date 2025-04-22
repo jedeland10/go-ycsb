@@ -1,5 +1,5 @@
-if [ "$#" -ne 7 ]; then
-  echo "Usage: $0 <output_file_path> <run_index> <keysize> <endpoint> <record_count> <operation_count> <thread_count>"
+if [ "$#" -ne 8 ]; then
+  echo "Usage: $0 <output_file_path> <run_index> <keysize> <endpoint> <record_count> <operation_count> <thread_count> <max-exec>"
   exit 1
 fi
 
@@ -11,6 +11,7 @@ endpoint="$4"
 record_count="$5"
 operation_count="$6"
 thread_count="$7"
+max_exec="$8"
 
 # Build the output file name: output_file_path/{keyprefixsize}_{run_index}.txt
 output_file="${output_file_path}/${keysize}_${run_index}.txt"
@@ -21,7 +22,7 @@ output_file="${output_file_path}/${keysize}_${run_index}.txt"
 
 ./bin/go-ycsb run raft -P workloads/workload_write \
     -p raft.address="$endpoint" \
-    -p maxexecutiontime=180 \
+    -p maxexecutiontime="$max_exec" \
     -p keysize="$keysize" \
     -p threadcount="$thread_count" \
     -p recordcount="$record_count" -p operationcount="$operation_count" 2>&1 \
