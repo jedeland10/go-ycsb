@@ -43,9 +43,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.10.0
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.4.26
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.17.1
+	github.com/cheggaaa/pb/v3 v3.1.7
 	github.com/gogo/protobuf v1.3.2
 	go.etcd.io/etcd/client/pkg/v3 v3.5.2
 	go.etcd.io/etcd/client/v3 v3.5.2
+	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	google.golang.org/grpc v1.68.0
 	google.golang.org/protobuf v1.34.2
 )
@@ -57,6 +59,7 @@ require (
 	cloud.google.com/go/iam v0.13.0 // indirect
 	cloud.google.com/go/longrunning v0.4.1 // indirect
 	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 // indirect
+	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/apache/thrift v0.0.0-20171203172758-327ebb6c2b6d // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.12.21 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.17 // indirect
@@ -85,6 +88,7 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/elastic/elastic-transport-go/v8 v8.0.0-20211216131617-bbee439d559c // indirect
+	github.com/fatih/color v1.18.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
@@ -97,7 +101,9 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
-	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
@@ -110,6 +116,7 @@ require (
 	github.com/prometheus/common v0.26.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
@@ -131,7 +138,7 @@ require (
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
