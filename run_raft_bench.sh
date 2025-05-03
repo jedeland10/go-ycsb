@@ -25,6 +25,6 @@ output_file="${output_file_path}/${keysize}_${run_index}.txt"
     -p maxexecutiontime="$max_exec" \
     -p keysize="$keysize" \
     -p threadcount="$thread_count" \
-    -p recordcount="$record_count" -p operationcount="$operation_count" #2>&1 | grep -E '^(UPDATE|TOTAL)' | tee -a "$output_file"
+    -p recordcount="$record_count" -p operationcount="$operation_count" 2>&1 | grep -E '^(UPDATE|TOTAL)' | tee -a "$output_file"
 
 echo "---------------------------------------" | tee -a "$output_file"
