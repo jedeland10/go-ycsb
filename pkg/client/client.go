@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -116,6 +117,8 @@ func (w *worker) run(ctx context.Context) {
 	if w.targetOpsPerMs > 0.0 && w.targetOpsPerMs <= 1.0 {
 		time.Sleep(time.Duration(rand.Int63n(w.targetOpsTickNs)))
 	}
+
+	runtime.GC()
 
 	startTime := time.Now()
 
