@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -34,6 +35,7 @@ type raftDB struct {
 }
 
 func init() {
+	debug.SetGCPercent(300)
 	ycsb.RegisterDBCreator("raft", raftCreator{})
 }
 
