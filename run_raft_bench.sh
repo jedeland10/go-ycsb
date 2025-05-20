@@ -31,7 +31,7 @@ output_file="${output_file_path}/${keysize}_${run_index}.txt"
     -p recordcount="$record_count" \
     -p operationcount="$operation_count" \
   2>&1 \
-  | grep -E '^(UPDATE|TOTAL)' \
+  | grep -E '^(UPDATE)' \
   | tee -a "$output_file"
 
 echo "---------------------------------------" | tee -a "$output_file"
