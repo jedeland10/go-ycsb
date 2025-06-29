@@ -221,6 +221,86 @@ func (x *GetResponse) GetValue() string {
 	return ""
 }
 
+type CacheHitsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Cachehits     *uint64                `protobuf:"varint,1,opt,name=cachehits" json:"cachehits,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CacheHitsResponse) Reset() {
+	*x = CacheHitsResponse{}
+	mi := &file_raftapi_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CacheHitsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CacheHitsResponse) ProtoMessage() {}
+
+func (x *CacheHitsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_raftapi_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CacheHitsResponse.ProtoReflect.Descriptor instead.
+func (*CacheHitsResponse) Descriptor() ([]byte, []int) {
+	return file_raftapi_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CacheHitsResponse) GetCachehits() uint64 {
+	if x != nil && x.Cachehits != nil {
+		return *x.Cachehits
+	}
+	return 0
+}
+
+type Empty struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Empty) Reset() {
+	*x = Empty{}
+	mi := &file_raftapi_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Empty) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Empty) ProtoMessage() {}
+
+func (x *Empty) ProtoReflect() protoreflect.Message {
+	mi := &file_raftapi_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Empty.ProtoReflect.Descriptor instead.
+func (*Empty) Descriptor() ([]byte, []int) {
+	return file_raftapi_proto_rawDescGZIP(), []int{5}
+}
+
 var File_raftapi_proto protoreflect.FileDescriptor
 
 const file_raftapi_proto_rawDesc = "" +
@@ -238,11 +318,14 @@ const file_raftapi_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\"9\n" +
 	"\vGetResponse\x12\x14\n" +
 	"\x05found\x18\x01 \x01(\bR\x05found\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value2\xb5\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"1\n" +
+	"\x11CacheHitsResponse\x12\x1c\n" +
+	"\tcachehits\x18\x01 \x01(\x04R\tcachehits\"\a\n" +
+	"\x05Empty2\xaf\x01\n" +
 	"\rRaftKVService\x120\n" +
 	"\x03Put\x12\x13.raftapi.PutRequest\x1a\x14.raftapi.PutResponse\x120\n" +
-	"\x03Get\x12\x13.raftapi.GetRequest\x1a\x14.raftapi.GetResponse\x12@\n" +
-	"\x0fStreamProposals\x12\x13.raftapi.PutRequest\x1a\x14.raftapi.PutResponse(\x010\x01B\fZ\n" +
+	"\x03Get\x12\x13.raftapi.GetRequest\x1a\x14.raftapi.GetResponse\x12:\n" +
+	"\fGetCacheHits\x12\x0e.raftapi.Empty\x1a\x1a.raftapi.CacheHitsResponseB\fZ\n" +
 	"../raftapi"
 
 var (
@@ -257,20 +340,22 @@ func file_raftapi_proto_rawDescGZIP() []byte {
 	return file_raftapi_proto_rawDescData
 }
 
-var file_raftapi_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_raftapi_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_raftapi_proto_goTypes = []any{
-	(*PutRequest)(nil),  // 0: raftapi.PutRequest
-	(*PutResponse)(nil), // 1: raftapi.PutResponse
-	(*GetRequest)(nil),  // 2: raftapi.GetRequest
-	(*GetResponse)(nil), // 3: raftapi.GetResponse
+	(*PutRequest)(nil),        // 0: raftapi.PutRequest
+	(*PutResponse)(nil),       // 1: raftapi.PutResponse
+	(*GetRequest)(nil),        // 2: raftapi.GetRequest
+	(*GetResponse)(nil),       // 3: raftapi.GetResponse
+	(*CacheHitsResponse)(nil), // 4: raftapi.CacheHitsResponse
+	(*Empty)(nil),             // 5: raftapi.Empty
 }
 var file_raftapi_proto_depIdxs = []int32{
 	0, // 0: raftapi.RaftKVService.Put:input_type -> raftapi.PutRequest
 	2, // 1: raftapi.RaftKVService.Get:input_type -> raftapi.GetRequest
-	0, // 2: raftapi.RaftKVService.StreamProposals:input_type -> raftapi.PutRequest
+	5, // 2: raftapi.RaftKVService.GetCacheHits:input_type -> raftapi.Empty
 	1, // 3: raftapi.RaftKVService.Put:output_type -> raftapi.PutResponse
 	3, // 4: raftapi.RaftKVService.Get:output_type -> raftapi.GetResponse
-	1, // 5: raftapi.RaftKVService.StreamProposals:output_type -> raftapi.PutResponse
+	4, // 5: raftapi.RaftKVService.GetCacheHits:output_type -> raftapi.CacheHitsResponse
 	3, // [3:6] is the sub-list for method output_type
 	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -289,7 +374,7 @@ func file_raftapi_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_raftapi_proto_rawDesc), len(file_raftapi_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
