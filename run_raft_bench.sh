@@ -32,6 +32,4 @@ echo "LEADER_ZONE=${leader_zone}" >> "$output_file"
   | tee -a "$output_file"
 
 # fetch cache hits from raft server
-echo "Fetching cache hits..." >> "$output_file"
-go run get_cache_hits.go --addr "$endpoint" 2>&1 | tee -a "$output_file"
 echo "---------------------------------------" >> "$output_file"
