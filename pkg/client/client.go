@@ -199,17 +199,19 @@ func (c *Client) Run(origCtx context.Context) {
 				return
 			case <-time.After(time.Duration(dur) * time.Second):
 			}
-		}
 
-		if statResetter, ok := c.db.(interface {
-			ResetStats(ctx context.Context) error
-		}); ok {
-			if err := statResetter.ResetStats(ctx); err != nil {
-				fmt.Println("Failed to reset cache stats:", err)
-			} else {
-				fmt.Println("Cache stats reset after warmup.")
+			if statResetter, ok := c.db.(interface {
+				ResetStats(ctx context.Context) error
+			}); ok {
+				if err := statResetter.ResetStats(ctx); err != nil {
+					fmt.Println("Failed to reset cache stats:", err)
+				} else {
+					fmt.Println("Cache stats reset after warmup.")
+				}
 			}
 		}
+
+		time.Sleep(2 * time.Second)
 
 		measurement.EnableWarmUp(false)
 		dur := c.p.GetInt64(prop.LogInterval, 10)
