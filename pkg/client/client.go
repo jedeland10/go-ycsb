@@ -112,7 +112,8 @@ func (w *worker) throttle(ctx context.Context, startTime time.Time) {
 	}
 }
 
-func (w *worker) run(ctx context.Context) {
+func (w *worker) run(ctx context.Context, startCh <-chan struct{}) {
+	<-startCh
 	// spread the thread operation out so they don't all hit the DB at the same time
 	if w.targetOpsPerMs > 0.0 && w.targetOpsPerMs <= 1.0 {
 		time.Sleep(time.Duration(rand.Int63n(w.targetOpsTickNs)))
@@ -183,6 +184,7 @@ func (c *Client) Run(origCtx context.Context) {
 
 	var wg sync.WaitGroup
 	threadCount := c.p.GetInt(prop.ThreadCount, 1)
+	startWorkCh := make(chan struct{})
 
 	wg.Add(threadCount)
 	measureCtx, measureCancel := context.WithCancel(ctx)
@@ -213,6 +215,8 @@ func (c *Client) Run(origCtx context.Context) {
 
 		time.Sleep(2 * time.Second)
 
+		close(startWorkCh)
+
 		measurement.EnableWarmUp(false)
 		dur := c.p.GetInt64(prop.LogInterval, 10)
 		t := time.NewTicker(time.Duration(dur) * time.Second)
@@ -235,7 +239,9 @@ func (c *Client) Run(origCtx context.Context) {
 			w := newWorker(c.p, threadId, threadCount, c.workload, c.db)
 			threadCtx := c.workload.InitThread(ctx, threadId, threadCount)
 			threadCtx = c.db.InitThread(threadCtx, threadId, threadCount)
-			w.run(threadCtx) // your worker loop should respect threadCtx.Done()
+
+			w.run(threadCtx, startWorkCh) // your worker loop should respect threadCtx.Done()
+
 			c.db.CleanupThread(threadCtx)
 			c.workload.CleanupThread(threadCtx)
 		}(i)
