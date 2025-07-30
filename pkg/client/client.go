@@ -201,6 +201,16 @@ func (c *Client) Run(origCtx context.Context) {
 			}
 		}
 
+		if statResetter, ok := c.db.(interface {
+			ResetStats(ctx context.Context) error
+		}); ok {
+			if err := statResetter.ResetStats(ctx); err != nil {
+				fmt.Println("Failed to reset cache stats:", err)
+			} else {
+				fmt.Println("Cache stats reset after warmup.")
+			}
+		}
+
 		measurement.EnableWarmUp(false)
 		dur := c.p.GetInt64(prop.LogInterval, 10)
 		t := time.NewTicker(time.Duration(dur) * time.Second)

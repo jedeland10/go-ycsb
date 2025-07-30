@@ -173,3 +173,12 @@ func (db DbWrapper) Analyze(ctx context.Context, table string) error {
 	}
 	return nil
 }
+
+func (db DbWrapper) ResetStats(ctx context.Context) error {
+	if resettable, ok := db.DB.(interface {
+		ResetStats(context.Context) error
+	}); ok {
+		return resettable.ResetStats(ctx)
+	}
+	return fmt.Errorf("underlying DB does not support ResetStats")
+}

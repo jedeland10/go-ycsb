@@ -27,9 +27,13 @@ echo "LEADER_ZONE=${leader_zone}" >> "$output_file"
   -p threadcount="$thread_count" \
   -p recordcount="$record_count" \
   -p operationcount="$operation_count" \
+  -p warmuptime=10 \
   2>&1 \
   | grep -E '^(UPDATE|TOTAL)' \
   | tee -a "$output_file"
+
+echo "Sleep 5 seconds before fetcing cache hits"
+sleep 5
 
 # fetch cache hits from raft server
 echo "Fetching cache hits..." >> "$output_file"

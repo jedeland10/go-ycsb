@@ -103,8 +103,8 @@ func (db *raftDB) Read(ctx context.Context, table string, key string, fields []s
 	return result, nil
 }
 
-// Scan is not fully supported here; it could be implemented if your underlying
-// store supports range queries. For now, return an error.
+// Scan is not fully supported here; it could be implemented if the underlying
+// store supports range queries
 func (db *raftDB) Scan(ctx context.Context, table string, startKey string, count int, fields []string) ([]map[string][]byte, error) {
 	return nil, fmt.Errorf("scan operation not implemented")
 }
@@ -139,5 +139,10 @@ func (db *raftDB) Delete(ctx context.Context, table string, key string) error {
 		Value: proto.String("{}"),
 	}
 	_, err := db.client.Put(ctx, req)
+	return err
+}
+
+func (db *raftDB) ResetStats(ctx context.Context) error {
+	_, err := db.client.ResetCacheHits(ctx, &raftapi.Empty{})
 	return err
 }
