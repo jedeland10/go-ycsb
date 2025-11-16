@@ -4,13 +4,13 @@ set -euo pipefail
 # =========================
 # Config (edit if needed)
 # =========================
-PEER_PORTS=(12379 22379 32379)     # Raft replication ports (node1/2/3)
-CLIENT_PORTS=(12380 22380 32380)   # Client API ports (node1/2/3)
+PEER_PORTS=(12379 22379 32379 42379 52379)     # Raft replication ports (node1/2/3)
+CLIENT_PORTS=(12380 22380 32380 42380 52380)   # Client API ports (node1/2/3)
 
 THREADS=${THREADS:-50}
-OP_PER_CLIENT=${OP_PER_CLIENT:-100000}  # ≈ 500k total across 3
+OP_PER_CLIENT=${OP_PER_CLIENT:-100000}
 KEYSIZE=${KEYSIZE:-4096}
-RECORDCOUNT=${RECORDCOUNT:-66000}
+RECORDCOUNT=${RECORDCOUNT:-1}
 MAX_EXEC=${MAX_EXEC:-200}
 ZONE=${ZONE:-local}
 YCSB=${YCSB:-"./run_raft_bench.sh"}
@@ -33,6 +33,8 @@ port_to_node() {
     12379|12380) echo 1 ;;
     22379|22380) echo 2 ;;
     32379|32380) echo 3 ;;
+    42379|42380) echo 4 ;;
+    52379|52380) echo 5 ;;
     *) echo 0 ;;
   esac
 }
@@ -101,21 +103,31 @@ check_listeners() {
 }
 
 run_clients() {
-  echo ">>> Starting 3 YCSB clients | ops/client=${OP_PER_CLIENT} threads=${THREADS} mode=${MODE}"
+  echo ">>> Starting 5 YCSB clients | ops/client=${OP_PER_CLIENT} threads=${THREADS} mode=${MODE}"
   set -x
   if [[ "$MODE" == "leaderonly" ]]; then
     leader_cport="${CLIENT_PORTS[$((LEADER_ID-1))]}"
     "$YCSB" results 1 "$KEYSIZE" "localhost:${leader_cport}" "$RECORDCOUNT" "$OP_PER_CLIENT" "$THREADS" "$MAX_EXEC" "$ZONE" & P1=$!
     "$YCSB" results 2 "$KEYSIZE" "localhost:${leader_cport}" "$RECORDCOUNT" "$OP_PER_CLIENT" "$THREADS" "$MAX_EXEC" "$ZONE" & P2=$!
     "$YCSB" results 3 "$KEYSIZE" "localhost:${leader_cport}" "$RECORDCOUNT" "$OP_PER_CLIENT" "$THREADS" "$MAX_EXEC" "$ZONE" & P3=$!
+    "$YCSB" results 4 "$KEYSIZE" "localhost:${leader_cport}" "$RECORDCOUNT" "$OP_PER_CLIENT" "$THREADS" "$MAX_EXEC" "$ZONE" & P4=$!
+    "$YCSB" results 5 "$KEYSIZE" "localhost:${leader_cport}" "$RECORDCOUNT" "$OP_PER_CLIENT" "$THREADS" "$MAX_EXEC" "$ZONE" & P5=$!
   else
     "$YCSB" results 1 "$KEYSIZE" "localhost:${CLIENT_PORTS[0]}" "$RECORDCOUNT" "$OP_PER_CLIENT" "$THREADS" "$MAX_EXEC" "$ZONE" & P1=$!
     "$YCSB" results 2 "$KEYSIZE" "localhost:${CLIENT_PORTS[1]}" "$RECORDCOUNT" "$OP_PER_CLIENT" "$THREADS" "$MAX_EXEC" "$ZONE" & P2=$!
     "$YCSB" results 3 "$KEYSIZE" "localhost:${CLIENT_PORTS[2]}" "$RECORDCOUNT" "$OP_PER_CLIENT" "$THREADS" "$MAX_EXEC" "$ZONE" & P3=$!
+    "$YCSB" results 4 "$KEYSIZE" "localhost:${CLIENT_PORTS[3]}" "$RECORDCOUNT" "$OP_PER_CLIENT" "$THREADS" "$MAX_EXEC" "$ZONE" & P4=$!
+    "$YCSB" results 5 "$KEYSIZE" "localhost:${CLIENT_PORTS[4]}" "$RECORDCOUNT" "$OP_PER_CLIENT" "$THREADS" "$MAX_EXEC" "$ZONE" & P5=$!
   fi
   set +x
-  wait $P1; S1=$?; wait $P2; S2=$?; wait $P3; S3=$?
-  echo "Exit codes: c1=$S1 c2=$S2 c3=$S3"
+  wait $P1; S1=$?;
+  wait $P2; S2=$?;
+  wait $P3; S3=$?;
+  wait $P4; S4=$?;
+  wait $P5; S5=$?;
+
+
+  echo "Exit codes: c1=$S1 c2=$S2 c3=$S3 c4=$S4 c5=$S5"
 }
 
 # Parse nft: emit CSV lines role,port,dir,bytes (JSON is robust to layout)
@@ -160,7 +172,7 @@ report() {
   if [ ! -f "$CSV_PER_NODE" ]; then
     echo "node_id,role,threads,op_per_client,total_ops,recordcount,keysize,max_exec,sent_bytes,recv_bytes,sum_bytes,timestamp" > "$CSV_PER_NODE"
   fi
-  local total_ops=$((OP_PER_CLIENT*3))
+  local total_ops=$((OP_PER_CLIENT*5))
   echo "=== Bytes per node ==="
   echo "node_id,role,port,sent_bytes,recv_bytes,sum_bytes"
   for p in "${PEER_PORTS[@]}"; do
