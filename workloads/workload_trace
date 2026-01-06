@@ -1,0 +1,50 @@
+# Twemcache Trace Replay Workload
+#
+# This workload replays traces from Twitter's cache-trace repository:
+# https://github.com/twitter/cache-trace
+#
+# Trace files are zstd-compressed CSV files with the following format:
+#   timestamp, key, key_size, value_size, client_id, operation, ttl
+#
+# Supported operations: get, gets, set, add, replace, cas, append, prepend, delete, incr, decr
+#
+# Download traces from:
+#   - CMU PDL: https://ftp.pdl.cmu.edu/pub/datasets/twemcacheWorkload/open_source
+#   - SNIA: http://iotta.snia.org/tracetypes/17
+#
+# Recommended clusters for different evaluations:
+#   - miss ratio (admission, eviction): cluster52, cluster17, cluster18, cluster24, cluster44, cluster45, cluster29
+#   - write-heavy: cluster12, cluster15, cluster31, cluster37
+#   - TTL-related: cluster52, cluster22, cluster25, cluster11 (mix), cluster18, cluster19 (small TTLs)
+
+# Workload type - must be "trace" or "twemcache"
+workload=trace
+
+# Path to the trace file (supports .zst compressed files)
+# Example: trace.file=/path/to/cluster52.0.zst
+trace.file=
+
+# Table name for operations (default: usertable)
+trace.table=usertable
+
+# Field name for values (default: field0)
+trace.fieldname=field0
+
+# Maximum number of records to load from the trace (0 = unlimited)
+# Useful for testing with a subset of the trace
+trace.maxrecords=0
+
+# Loop the trace when exhausted (default: false)
+# If false, operations will stop when the trace is exhausted
+trace.loop=false
+
+# Number of threads for running operations
+threadcount=1
+
+# Operation count (total number of operations to perform)
+# Set to the number of records in your trace or use maxexecutiontime
+operationcount=1000000
+
+# Alternative: max execution time in seconds (overrides operationcount if set)
+# maxexecutiontime=60
+

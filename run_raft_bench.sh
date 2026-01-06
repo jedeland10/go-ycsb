@@ -29,7 +29,7 @@ echo "LEADER_ZONE=${leader_zone}" >> "$output_file"
   -p operationcount="$operation_count" \
   -p warmuptime=10 \
   2>&1 \
-  | grep -E '^(UPDATE|TOTAL)' \
+  | grep -E '^(INSERT|UPDATE|TOTAL)' \
   | tee -a "$output_file"
 
 echo "Sleep 5 seconds before fetcing cache hits"
