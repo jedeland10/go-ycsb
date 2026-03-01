@@ -29,7 +29,7 @@ echo "LEADER_ZONE=${leader_zone}" >> "$output_file"
   -p recordcount="$record_count" \
   -p operationcount="$operation_count" \
   -p warmuptime=10 \
-  -p measurement.interval=250 \
+  -p measurement.interval=100 \
   2>&1 \
   | grep -E '^(INSERT|UPDATE|TOTAL)' \
   | tee -a "$output_file"
