@@ -23,7 +23,7 @@ YCSB_CLIENT="ycsb-client-1"
 
 # Benchmark settings
 NUM_NODES=5
-THREAD_COUNT=4
+THREAD_COUNT=2000
 NUM_RUNS=5
 MAX_EXEC=60
 ETCD_BRANCHES=("leaderEncode")
@@ -32,8 +32,9 @@ CLIENT_TYPE="e2-standard-4"
 
 # Trace settings
 TRACE_FILE="cluster26.sort.zst"
-GCS_BUCKET="gs://jedeland-thesis-traces"
-READ_MODE="skip"  # skip, write, or read
+GCS_BUCKET="gs://jedeland-twem-traces"
+READ_MODE="write"       # skip, write, or read (write = convert reads to writes)
+MAX_RECORDS=2000000     # Limit records to load (2M ≈ 400MB RAM, 0=unlimited)
 
 echo ">>> [1/5] Creating ${NUM_NODES} raft-node VMs from image '${CUSTOM_IMAGE_NAME}'..."
 
@@ -208,10 +209,20 @@ for branch in "${ETCD_BRANCHES[@]}"; do
           mkdir -p results/trace/${branch};
           ./run_trace_bench.sh results/trace/${branch} \
             ${runIndex} ./${TRACE_FILE} ${LEADER_IP}:12380 \
-            ${THREAD_COUNT} ${MAX_EXEC} ${LEADER_ZONE} ${READ_MODE}
+            ${THREAD_COUNT} ${MAX_EXEC} ${LEADER_ZONE} ${READ_MODE} ${MAX_RECORDS}
         '"
       
       echo ">>> Run ${runIndex} completed."
+
+      # Fetch results immediately after each successful run
+      echo ">>> Fetching results for run ${runIndex}..."
+      mkdir -p "./results/trace/${branch}"
+      gcloud compute scp \
+        --zone="${ZONE2}" \
+        "${REMOTE_USER}@${YCSB_CLIENT}:~/go-ycsb/results/trace/${branch}/*" \
+        "./results/trace/${branch}/" \
+        --recurse 2>/dev/null || true
+      echo ">>> Results saved to ./results/trace/${branch}/"
     fi
 
     # Stop raft nodes
@@ -225,15 +236,7 @@ for branch in "${ETCD_BRANCHES[@]}"; do
     sleep 3
   done
 
-  # Fetch results
-  echo ">>> [5/5] Fetching results..."
-  mkdir -p "./results/trace/${branch}"
-  gcloud compute scp \
-    --zone="${ZONE2}" \
-    "${REMOTE_USER}@${YCSB_CLIENT}:~/go-ycsb/results/trace/${branch}" \
-    "./results/trace/" \
-    --recurse
-  echo ">>> Results fetched to ./results/trace/${branch}"
+  echo ">>> All runs for branch '${branch}' completed."
 done
 
 # Cleanup
@@ -247,4 +250,3 @@ gcloud compute instances delete "${YCSB_CLIENT}" --zone="${ZONE2}" --quiet &
 wait
 
 echo ">>> Done!"
-
