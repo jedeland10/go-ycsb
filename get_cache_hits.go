@@ -15,7 +15,7 @@ func main() {
 	addr := flag.String("addr", "localhost:5000", "raft gRPC endpoint")
 	flag.Parse()
 
-	conn, err := grpc.Dial(*addr, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to dial %s: %v", *addr, err)
 	}
