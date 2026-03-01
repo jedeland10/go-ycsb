@@ -218,14 +218,14 @@ func (c *Client) Run(origCtx context.Context) {
 		close(startWorkCh)
 
 		measurement.EnableWarmUp(false)
-		dur := c.p.GetInt64(prop.LogInterval, 10)
-		t := time.NewTicker(time.Duration(dur) * time.Second)
+		dur := c.p.GetInt64(prop.LogInterval, 10000)
+		t := time.NewTicker(time.Duration(dur) * time.Millisecond)
 		defer t.Stop()
 
 		for {
 			select {
 			case <-t.C:
-				//measurement.Summary()
+				measurement.Summary()
 			case <-measureCtx.Done(): // will fire if timeout or client shutdown
 				return
 			}

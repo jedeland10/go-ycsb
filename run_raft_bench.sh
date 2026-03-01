@@ -6,6 +6,7 @@ if [ "$#" -ne 9 ]; then
   exit 1
 fi
 
+
 # Parse args
 output_dir="$1"; run_index="$2"; keysize="$3"; endpoint="$4"
 record_count="$5"; operation_count="$6"; thread_count="$7"; max_exec="$8"
@@ -28,6 +29,7 @@ echo "LEADER_ZONE=${leader_zone}" >> "$output_file"
   -p recordcount="$record_count" \
   -p operationcount="$operation_count" \
   -p warmuptime=10 \
+  -p measurement.interval=250 \
   2>&1 \
   | grep -E '^(INSERT|UPDATE|TOTAL)' \
   | tee -a "$output_file"
