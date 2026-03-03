@@ -225,7 +225,7 @@ func (c *Client) Run(origCtx context.Context) {
 		for {
 			select {
 			case <-t.C:
-				measurement.Summary()
+				//measurement.Summary()
 			case <-measureCtx.Done(): // will fire if timeout or client shutdown
 				return
 			}
