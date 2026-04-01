@@ -144,5 +144,9 @@ func (db *raftDB) Delete(ctx context.Context, table string, key string) error {
 
 func (db *raftDB) ResetStats(ctx context.Context) error {
 	_, err := db.client.ResetCacheHits(ctx, &raftapi.Empty{})
+	if err != nil {
+		return err
+	}
+	_, err = db.client.ResetRestored(ctx, &raftapi.Empty{})
 	return err
 }

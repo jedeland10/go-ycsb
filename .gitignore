@@ -13,3 +13,6 @@ tool/tool
 
 # hdr-plot output format
 *.png
+
+# trace files
+cluster26.sort.zst
