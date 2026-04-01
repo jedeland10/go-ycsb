@@ -1,4 +1,5 @@
 bin
+/go-ycsb
 data
 logs
 log
