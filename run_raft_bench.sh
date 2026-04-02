@@ -40,4 +40,7 @@ sleep 5
 # fetch cache hits from raft server
 echo "Fetching cache hits..." >> "$output_file"
 go run get_cache_hits.go --addr "$endpoint" 2>&1 | tee -a "$output_file"
+
+echo "Fetching restored..." >> "$output_file"
+go run get_restored.go --addr "$endpoint" 2>&1 | tee -a "$output_file"
 echo "---------------------------------------" >> "$output_file"
