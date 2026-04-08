@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$#" -ne 8 ]; then
-  echo "Usage: $0 <output_dir> <run_index> <keysize> <endpoint> <record_count> <operation_count> <thread_count> <max_exec>"
+if [ "$#" -lt 8 ]; then
+  echo "Usage: $0 <output_dir> <run_index> <keysize> <endpoint> <record_count> <operation_count> <thread_count> <max_exec> [zone]"
   exit 1
 fi
 
 # Parse args
 output_dir="$1"; run_index="$2"; keysize="$3"; endpoint="$4"
 record_count="$5"; operation_count="$6"; thread_count="$7"; max_exec="$8"
+zone="${9:-unknown}"
 
 mkdir -p "$output_dir"
 output_file="$output_dir/${keysize}_${run_index}.txt"
 > "$output_file"
+
+echo "ENDPOINT=${endpoint}" >> "$output_file"
+echo "ZONE=${zone}" >> "$output_file"
 
 # Run YCSB with the etcd binding
 ./bin/go-ycsb run etcd \
