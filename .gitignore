@@ -16,4 +16,4 @@ tool/tool
 *.png
 
 # trace files
-cluster26.sort.zst
+*.zst

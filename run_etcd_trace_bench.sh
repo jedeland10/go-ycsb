@@ -8,7 +8,7 @@ if [ "$#" -lt 7 ] || [ "$#" -gt 9 ]; then
   echo "  output_dir       - Directory to store output files"
   echo "  run_index        - Index for this run (used in output filename)"
   echo "  trace_file       - Path to the twemcache trace file (.zst or .csv)"
-  echo "  endpoint         - Raft server endpoint"
+  echo "  endpoint         - etcd endpoint (e.g. localhost:2379)"
   echo "  thread_count     - Number of concurrent threads"
   echo "  max_exec         - Max execution time in seconds"
   echo "  leader_zone      - Leader zone annotation"
@@ -38,9 +38,9 @@ echo "READ_MODE=${read_mode}" >> "$output_file"
 
 # now do the run
 # operationcount set very high - actual ops determined by trace length or max_exec
-./bin/go-ycsb run raft \
+./bin/go-ycsb run etcd \
   -P workloads/workload_trace \
-  -p raft.address="$endpoint" \
+  -p etcd.endpoints="$endpoint" \
   -p trace.file="$trace_file" \
   -p trace.maxrecords="$max_records" \
   -p trace.readmode="$read_mode" \
@@ -52,15 +52,4 @@ echo "READ_MODE=${read_mode}" >> "$output_file"
   | grep -E '^(INSERT|UPDATE|READ|DELETE|TOTAL|\[TRACE DEBUG\])' \
   | tee -a "$output_file"
 
-echo "Sleep 5 seconds before fetching cache hits"
-sleep 5
-
-# fetch cache hits from raft server
-echo "Fetching cache hits..." >> "$output_file"
-go run get_cache_hits.go --addr "$endpoint" 2>&1 | tee -a "$output_file"
-
-# fetch restored count from raft server
-echo "Fetching restored..." >> "$output_file"
-go run get_restored.go --addr "$endpoint" 2>&1 | tee -a "$output_file"
 echo "---------------------------------------" >> "$output_file"
-

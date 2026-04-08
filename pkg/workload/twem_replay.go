@@ -231,6 +231,10 @@ func (w *traceWorkload) DoInsert(ctx context.Context, db ycsb.DB) error {
 		valueSize = 100 // Default value size
 	}
 
+	if idx < 10 {
+		fmt.Printf("[TRACE DEBUG] DoInsert: key=%s valueSize=%d\n", key, valueSize)
+	}
+
 	// Create value of appropriate size
 	value := make([]byte, valueSize)
 	for i := range value {
@@ -328,6 +332,11 @@ func (w *traceWorkload) DoTransaction(ctx context.Context, db ycsb.DB) error {
 			valueSize = 100
 		}
 
+		if idx < 10 {
+			fmt.Printf("[TRACE DEBUG] DoTransaction: op=%s key=%s traceValueSize=%d actualValueSize=%d\n",
+				record.operation, record.key, record.valueSize, valueSize)
+		}
+
 		// Get or create value buffer
 		var value []byte
 		if stateVal := ctx.Value(traceStateKey); stateVal != nil {
@@ -362,6 +371,10 @@ func (w *traceWorkload) DoTransaction(ctx context.Context, db ycsb.DB) error {
 		valueSize := record.valueSize
 		if valueSize <= 0 {
 			valueSize = 100
+		}
+		if idx < 10 {
+			fmt.Printf("[TRACE DEBUG] DoTransaction: op=%s key=%s traceValueSize=%d actualValueSize=%d\n",
+				record.operation, record.key, record.valueSize, valueSize)
 		}
 		value := make([]byte, valueSize)
 		for i := range value {
