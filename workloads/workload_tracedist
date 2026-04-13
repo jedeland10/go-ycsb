@@ -1,0 +1,34 @@
+# Trace Distribution Workload
+#
+# Generates a key pool from the value-size distribution of a twemcache trace,
+# then accesses keys with configurable zipfian skew. All writes use a fixed
+# value size (default: median key size from the trace).
+#
+# Key pool: one key per trace record with non-zero value_size.
+# Key length = that record's value_size.
+# Keys are deterministic (seeded RNG) so different skew runs use the same set.
+
+workload=tracedist
+
+# Path to the trace file (supports .zst compressed files)
+tracedist.file=cluster37.sort.200k.zst
+
+# Fixed value size written per key (0 = auto-detect from median key size in trace)
+tracedist.valuesize=0
+
+# Zipfian constant controlling access skew (higher = more skewed)
+# 0.0 = uniform, 0.99 = default zipfian, 1.2+ = very skewed
+tracedist.zipfianconstant=0.99
+
+# Max trace records to read (0 = unlimited)
+tracedist.maxrecords=0
+
+# Table and field names
+tracedist.table=usertable
+tracedist.fieldname=field0
+
+# Number of threads
+threadcount=1
+
+# Operation count
+operationcount=1000000

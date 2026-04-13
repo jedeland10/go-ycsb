@@ -31,8 +31,10 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -75,6 +77,12 @@ const (
 	// TraceWriteValueSize is the value size to use when converting reads to writes (default: 1 byte)
 	TraceWriteValueSize        = "trace.writevaluesize"
 	TraceWriteValueSizeDefault = int64(1)
+
+	// TraceDeterministicValues makes all writes to the same key use identical content.
+	// Value size per key is the median of all non-zero value sizes seen in the trace.
+	// Value content is derived deterministically from the key via hashing.
+	TraceDeterministicValues        = "trace.deterministicvalues"
+	TraceDeterministicValuesDefault = false
 )
 
 // traceRecord represents a single record from the trace file
@@ -98,6 +106,11 @@ type traceWorkload struct {
 	readMode       string // "read", "skip", or "write"
 	writeValueSize int    // value size when converting reads to writes
 
+	// Deterministic values mode: all writes to the same key use identical content
+	deterministicValues bool
+	// Pre-computed deterministic values per key (only populated when deterministicValues=true)
+	deterministicCache map[string][]byte
+
 	// Trace data - loaded into memory for fast access
 	records    []traceRecord
 	recordIdx  int64 // atomic counter for round-robin access
@@ -120,6 +133,49 @@ type traceState struct {
 type traceContextKey string
 
 const traceStateKey = traceContextKey("trace")
+
+// buildDeterministicValue generates deterministic bytes for a key by repeatedly
+// hashing. The same key always produces the same byte sequence.
+func buildDeterministicValue(key string, size int) []byte {
+	buf := make([]byte, size)
+	h := fnv.New64a()
+	h.Write([]byte(key))
+	state := h.Sum64()
+	for i := 0; i < size; i += 8 {
+		state ^= state << 13
+		state ^= state >> 7
+		state ^= state << 17
+		remaining := size - i
+		if remaining >= 8 {
+			buf[i] = byte(state)
+			buf[i+1] = byte(state >> 8)
+			buf[i+2] = byte(state >> 16)
+			buf[i+3] = byte(state >> 24)
+			buf[i+4] = byte(state >> 32)
+			buf[i+5] = byte(state >> 40)
+			buf[i+6] = byte(state >> 48)
+			buf[i+7] = byte(state >> 56)
+		} else {
+			for j := 0; j < remaining; j++ {
+				buf[i+j] = byte(state >> (j * 8))
+			}
+		}
+	}
+	return buf
+}
+
+// medianInt returns the median of a sorted slice of ints.
+func medianInt(vals []int) int {
+	n := len(vals)
+	if n == 0 {
+		return 0
+	}
+	sort.Ints(vals)
+	if n%2 == 1 {
+		return vals[n/2]
+	}
+	return (vals[n/2-1] + vals[n/2]) / 2
+}
 
 // parseTraceFile reads and parses a trace file (supports .zst compression)
 func parseTraceFile(filePath string, maxRecords int64) ([]traceRecord, error) {
@@ -226,19 +282,23 @@ func (w *traceWorkload) DoInsert(ctx context.Context, db ycsb.DB) error {
 	}
 
 	key := w.uniqueKeys[idx]
-	valueSize := w.valueSizes[key]
-	if valueSize <= 0 {
-		valueSize = 100 // Default value size
+
+	var value []byte
+	if w.deterministicValues {
+		value = w.deterministicCache[key]
+	} else {
+		valueSize := w.valueSizes[key]
+		if valueSize <= 0 {
+			valueSize = 100
+		}
+		value = make([]byte, valueSize)
+		for i := range value {
+			value[i] = 'x'
+		}
 	}
 
 	if idx < 10 {
-		fmt.Printf("[TRACE DEBUG] DoInsert: key=%s valueSize=%d\n", key, valueSize)
-	}
-
-	// Create value of appropriate size
-	value := make([]byte, valueSize)
-	for i := range value {
-		value[i] = 'x'
+		fmt.Printf("[TRACE DEBUG] DoInsert: key=%s valueSize=%d\n", key, len(value))
 	}
 
 	values := map[string][]byte{w.fieldName: value}
@@ -268,14 +328,19 @@ func (w *traceWorkload) DoBatchInsert(ctx context.Context, batchSize int, db ycs
 		}
 
 		key := w.uniqueKeys[idx]
-		valueSize := w.valueSizes[key]
-		if valueSize <= 0 {
-			valueSize = 100
-		}
 
-		value := make([]byte, valueSize)
-		for j := range value {
-			value[j] = 'x'
+		var value []byte
+		if w.deterministicValues {
+			value = w.deterministicCache[key]
+		} else {
+			valueSize := w.valueSizes[key]
+			if valueSize <= 0 {
+				valueSize = 100
+			}
+			value = make([]byte, valueSize)
+			for j := range value {
+				value[j] = 'x'
+			}
 		}
 
 		keys = append(keys, key)
@@ -315,9 +380,14 @@ func (w *traceWorkload) DoTransaction(ctx context.Context, db ycsb.DB) error {
 			return nil
 		case "write":
 			// Convert read to write operation
-			value := make([]byte, w.writeValueSize)
-			for i := range value {
-				value[i] = 'x'
+			var value []byte
+			if w.deterministicValues {
+				value = w.deterministicCache[record.key]
+			} else {
+				value = make([]byte, w.writeValueSize)
+				for i := range value {
+					value[i] = 'x'
+				}
 			}
 			values := map[string][]byte{w.fieldName: value}
 			return db.Update(ctx, w.table, record.key, values)
@@ -327,33 +397,37 @@ func (w *traceWorkload) DoTransaction(ctx context.Context, db ycsb.DB) error {
 		}
 
 	case "set", "add", "replace", "cas":
-		valueSize := record.valueSize
-		if valueSize <= 0 {
-			valueSize = 100
+		var value []byte
+		if w.deterministicValues {
+			value = w.deterministicCache[record.key]
+		} else {
+			valueSize := record.valueSize
+			if valueSize <= 0 {
+				valueSize = 100
+			}
+
+			// Get or create value buffer
+			if stateVal := ctx.Value(traceStateKey); stateVal != nil {
+				state := stateVal.(*traceState)
+				if cap(state.valueBuf) >= valueSize {
+					value = state.valueBuf[:valueSize]
+				} else {
+					value = make([]byte, valueSize)
+					state.valueBuf = value
+				}
+			} else {
+				value = make([]byte, valueSize)
+			}
+
+			// Fill with dummy data
+			for i := range value {
+				value[i] = 'x'
+			}
 		}
 
 		if idx < 10 {
-			fmt.Printf("[TRACE DEBUG] DoTransaction: op=%s key=%s traceValueSize=%d actualValueSize=%d\n",
-				record.operation, record.key, record.valueSize, valueSize)
-		}
-
-		// Get or create value buffer
-		var value []byte
-		if stateVal := ctx.Value(traceStateKey); stateVal != nil {
-			state := stateVal.(*traceState)
-			if cap(state.valueBuf) >= valueSize {
-				value = state.valueBuf[:valueSize]
-			} else {
-				value = make([]byte, valueSize)
-				state.valueBuf = value
-			}
-		} else {
-			value = make([]byte, valueSize)
-		}
-
-		// Fill with dummy data
-		for i := range value {
-			value[i] = 'x'
+			fmt.Printf("[TRACE DEBUG] DoTransaction: op=%s key=%s valueSize=%d\n",
+				record.operation, record.key, len(value))
 		}
 
 		values := map[string][]byte{w.fieldName: value}
@@ -367,18 +441,22 @@ func (w *traceWorkload) DoTransaction(ctx context.Context, db ycsb.DB) error {
 		return db.Delete(ctx, w.table, record.key)
 
 	case "append", "prepend":
-		// Treat as update
-		valueSize := record.valueSize
-		if valueSize <= 0 {
-			valueSize = 100
+		var value []byte
+		if w.deterministicValues {
+			value = w.deterministicCache[record.key]
+		} else {
+			valueSize := record.valueSize
+			if valueSize <= 0 {
+				valueSize = 100
+			}
+			value = make([]byte, valueSize)
+			for i := range value {
+				value[i] = 'x'
+			}
 		}
 		if idx < 10 {
-			fmt.Printf("[TRACE DEBUG] DoTransaction: op=%s key=%s traceValueSize=%d actualValueSize=%d\n",
-				record.operation, record.key, record.valueSize, valueSize)
-		}
-		value := make([]byte, valueSize)
-		for i := range value {
-			value[i] = 'x'
+			fmt.Printf("[TRACE DEBUG] DoTransaction: op=%s key=%s valueSize=%d\n",
+				record.operation, record.key, len(value))
 		}
 		values := map[string][]byte{w.fieldName: value}
 		return db.Update(ctx, w.table, record.key, values)
@@ -389,7 +467,13 @@ func (w *traceWorkload) DoTransaction(ctx context.Context, db ycsb.DB) error {
 		if err != nil {
 			return err
 		}
-		values := map[string][]byte{w.fieldName: []byte("1")}
+		var value []byte
+		if w.deterministicValues {
+			value = w.deterministicCache[record.key]
+		} else {
+			value = []byte("1")
+		}
+		values := map[string][]byte{w.fieldName: value}
 		return db.Update(ctx, w.table, record.key, values)
 
 	default:
@@ -434,10 +518,18 @@ func (traceWorkloadCreator) Create(p *properties.Properties) (ycsb.Workload, err
 
 	fmt.Printf("Loaded %d records from trace\n", len(records))
 
+	deterministicValues := p.GetBool(TraceDeterministicValues, TraceDeterministicValuesDefault)
+
 	// Extract unique keys and their sizes for the load phase
 	uniqueKeysMap := make(map[string]bool)
 	keySizes := make(map[string]int)
 	valueSizes := make(map[string]int)
+
+	// Collect all non-zero value sizes per key for median computation
+	var allValueSizes map[string][]int
+	if deterministicValues {
+		allValueSizes = make(map[string][]int)
+	}
 
 	for _, r := range records {
 		if !uniqueKeysMap[r.key] {
@@ -447,6 +539,16 @@ func (traceWorkloadCreator) Create(p *properties.Properties) (ycsb.Workload, err
 		// Keep track of the largest value size for each key
 		if r.valueSize > valueSizes[r.key] {
 			valueSizes[r.key] = r.valueSize
+		}
+		if deterministicValues && r.valueSize > 0 {
+			allValueSizes[r.key] = append(allValueSizes[r.key], r.valueSize)
+		}
+	}
+
+	// In deterministic mode, replace valueSizes with per-key medians
+	if deterministicValues {
+		for key, sizes := range allValueSizes {
+			valueSizes[key] = medianInt(sizes)
 		}
 	}
 
@@ -485,19 +587,35 @@ func (traceWorkloadCreator) Create(p *properties.Properties) (ycsb.Workload, err
 	}
 	fmt.Printf("Read mode: %s\n", readMode)
 
+	// Pre-compute deterministic values per key
+	var deterministicCache map[string][]byte
+	if deterministicValues {
+		deterministicCache = make(map[string][]byte, len(uniqueKeys))
+		for _, key := range uniqueKeys {
+			size := valueSizes[key]
+			if size <= 0 {
+				size = 100
+			}
+			deterministicCache[key] = buildDeterministicValue(key, size)
+		}
+		fmt.Printf("Deterministic values mode: pre-computed values for %d keys (median sizes)\n", len(deterministicCache))
+	}
+
 	w := &traceWorkload{
-		p:              p,
-		table:          p.GetString(TraceTable, p.GetString(prop.TableName, TraceTableDefault)),
-		fieldName:      p.GetString(TraceFieldName, TraceFieldNameDefault),
-		loopReplay:     p.GetBool(TraceLoopReplay, TraceLoopReplayDefault),
-		readMode:       readMode,
-		writeValueSize: int(p.GetInt64(TraceWriteValueSize, TraceWriteValueSizeDefault)),
-		records:        records,
-		numRecords:     int64(len(records)),
-		uniqueKeys:     uniqueKeys,
-		keySizes:       keySizes,
-		valueSizes:     valueSizes,
-		numUniqueKeys:  int64(len(uniqueKeys)),
+		p:                   p,
+		table:               p.GetString(TraceTable, p.GetString(prop.TableName, TraceTableDefault)),
+		fieldName:           p.GetString(TraceFieldName, TraceFieldNameDefault),
+		loopReplay:          p.GetBool(TraceLoopReplay, TraceLoopReplayDefault),
+		readMode:            readMode,
+		writeValueSize:      int(p.GetInt64(TraceWriteValueSize, TraceWriteValueSizeDefault)),
+		deterministicValues: deterministicValues,
+		deterministicCache:  deterministicCache,
+		records:             records,
+		numRecords:          int64(len(records)),
+		uniqueKeys:          uniqueKeys,
+		keySizes:            keySizes,
+		valueSizes:          valueSizes,
+		numUniqueKeys:       int64(len(uniqueKeys)),
 	}
 
 	return w, nil
