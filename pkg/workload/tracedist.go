@@ -60,6 +60,10 @@ const (
 	// TraceDistReadProportion is the fraction of transactions that are reads (0.0 = all writes)
 	TraceDistReadProportion        = "tracedist.readproportion"
 	TraceDistReadProportionDefault = float64(0.0)
+
+	// TraceDistMaxKeySize caps the maximum key size in bytes (0 = no cap)
+	TraceDistMaxKeySize        = "tracedist.maxkeysize"
+	TraceDistMaxKeySizeDefault = int64(0)
 )
 
 // traceDistWorkload generates keys from a trace's value-size distribution
@@ -223,12 +227,19 @@ func (traceDistCreator) Create(p *properties.Properties) (ycsb.Workload, error) 
 		return nil, fmt.Errorf("failed to parse trace file: %w", err)
 	}
 
+	maxKeySize := p.GetInt64(TraceDistMaxKeySize, TraceDistMaxKeySizeDefault)
+
 	// Collect non-zero value sizes (these become key lengths) and all key sizes
 	var keySizesForMedian []int
 	var valueSizesNonZero []int
+	skipped := 0
 	for _, r := range records {
 		keySizesForMedian = append(keySizesForMedian, r.keySize)
 		if r.valueSize > 0 {
+			if maxKeySize > 0 && int64(r.valueSize) > maxKeySize {
+				skipped++
+				continue
+			}
 			valueSizesNonZero = append(valueSizesNonZero, r.valueSize)
 		}
 	}
@@ -237,6 +248,9 @@ func (traceDistCreator) Create(p *properties.Properties) (ycsb.Workload, error) 
 		return nil, fmt.Errorf("no records with non-zero value_size found in trace")
 	}
 
+	if maxKeySize > 0 {
+		fmt.Printf("Max key size cap: %d bytes (skipped %d records)\n", maxKeySize, skipped)
+	}
 	fmt.Printf("Found %d records with non-zero value_size (key pool size)\n", len(valueSizesNonZero))
 
 	// Determine fixed value size

@@ -39,6 +39,7 @@ echo "MAX_EXEC=${max_exec}" >> "$output_file"
   -p tracedist.file="$trace_file" \
   -p tracedist.zipfianconstant="$zipfian_constant" \
   -p tracedist.readproportion="$read_proportion" \
+  -p tracedist.maxkeysize=8192 \
   -p maxexecutiontime="$max_exec" \
   -p threadcount="$thread_count" \
   -p operationcount=999999999 \
