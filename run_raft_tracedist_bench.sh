@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 if [ "$#" -lt 6 ] || [ "$#" -gt 8 ]; then
   echo "Usage: $0 <output_dir> <run_index> <endpoint> <thread_count> <max_exec> <zipfian_constant> [read_proportion] [trace_file]"
@@ -22,6 +22,9 @@ thread_count="$4"; max_exec="$5"; zipfian_constant="$6"
 read_proportion="${7:-0.0}"
 trace_file="${8:-cluster37.sort.200k.zst}"
 
+# Hard timeout: 2x max_exec + 60s buffer for startup/teardown
+hard_timeout=$(( max_exec * 2 + 60 ))
+
 mkdir -p "$output_dir"
 output_file="$output_dir/tracedist_z${zipfian_constant}_r${read_proportion}_${run_index}.txt"
 > "$output_file"
@@ -33,7 +36,7 @@ echo "READ_PROPORTION=${read_proportion}" >> "$output_file"
 echo "THREAD_COUNT=${thread_count}" >> "$output_file"
 echo "MAX_EXEC=${max_exec}" >> "$output_file"
 
-./bin/go-ycsb run raft \
+timeout "${hard_timeout}" ./bin/go-ycsb run raft \
   -P workloads/workload_tracedist \
   -p raft.address="$endpoint" \
   -p tracedist.file="$trace_file" \
@@ -46,16 +49,17 @@ echo "MAX_EXEC=${max_exec}" >> "$output_file"
   -p warmuptime=10 \
   2>&1 \
   | grep -E '^(INSERT|UPDATE|READ|DELETE|TOTAL|\[TRACEDIST DEBUG\])' \
-  | tee -a "$output_file"
+  | tee -a "$output_file" \
+  || echo "BENCH_EXIT_CODE=$?" >> "$output_file"
 
 echo "Sleep 5 seconds before fetching cache hits"
 sleep 5
 
 # fetch cache hits from raft server
 echo "Fetching cache hits..." >> "$output_file"
-go run get_cache_hits.go --addr "$endpoint" 2>&1 | tee -a "$output_file"
+timeout 30 go run get_cache_hits.go --addr "$endpoint" 2>&1 | tee -a "$output_file" || true
 
 # fetch restored count from raft server
 echo "Fetching restored..." >> "$output_file"
-go run get_restored.go --addr "$endpoint" 2>&1 | tee -a "$output_file"
+timeout 30 go run get_restored.go --addr "$endpoint" 2>&1 | tee -a "$output_file" || true
 echo "---------------------------------------" >> "$output_file"
