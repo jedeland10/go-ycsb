@@ -42,7 +42,7 @@ timeout "${hard_timeout}" ./bin/go-ycsb run raft \
   -p tracedist.file="$trace_file" \
   -p tracedist.zipfianconstant="$zipfian_constant" \
   -p tracedist.readproportion="$read_proportion" \
-  -p tracedist.maxkeysize=8192 \
+  -p tracedist.maxkeysize=4096 \
   -p maxexecutiontime="$max_exec" \
   -p threadcount="$thread_count" \
   -p operationcount=999999999 \
@@ -52,14 +52,24 @@ timeout "${hard_timeout}" ./bin/go-ycsb run raft \
   | tee -a "$output_file" \
   || echo "BENCH_EXIT_CODE=$?" >> "$output_file"
 
-echo "Sleep 5 seconds before fetching cache hits"
-sleep 5
+echo "Sleep 30 seconds before fetching cache hits"
+sleep 30
 
-# fetch cache hits from raft server
+# fetch cache hits from raft server (retry up to 3 times)
 echo "Fetching cache hits..." >> "$output_file"
-timeout 30 go run get_cache_hits.go --addr "$endpoint" 2>&1 | tee -a "$output_file" || true
+for attempt in 1 2 3; do
+  if timeout 30 go run get_cache_hits.go --addr "$endpoint" 2>&1 | tee -a "$output_file"; then
+    break
+  fi
+  echo "  retry $attempt..." && sleep 10
+done
 
-# fetch restored count from raft server
+# fetch restored count from raft server (retry up to 3 times)
 echo "Fetching restored..." >> "$output_file"
-timeout 30 go run get_restored.go --addr "$endpoint" 2>&1 | tee -a "$output_file" || true
+for attempt in 1 2 3; do
+  if timeout 30 go run get_restored.go --addr "$endpoint" 2>&1 | tee -a "$output_file"; then
+    break
+  fi
+  echo "  retry $attempt..." && sleep 10
+done
 echo "---------------------------------------" >> "$output_file"
