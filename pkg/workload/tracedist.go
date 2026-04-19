@@ -282,10 +282,22 @@ func (traceDistCreator) Create(p *properties.Properties) (ycsb.Workload, error) 
 		fixedValue[i] = 'v'
 	}
 
-	// Create zipfian key chooser
+	// Create zipfian key chooser.
+	//
+	// ScrambledZipfian internally uses itemCount=10^10 for the zeta computation
+	// (to allow hash scattering across a huge range). Its constructor only has
+	// a pre-computed zetan for constant=0.99; any other value triggers an
+	// O(10^10) sum that effectively hangs. Fall back to a non-scrambled
+	// Zipfian sized to the actual key pool when a non-default constant is used;
+	// zeta over ~100k keys computes in milliseconds.
 	zipfianConstant := p.GetFloat64(TraceDistZipfianConstant, TraceDistZipfianConstantDefault)
 	fmt.Printf("Zipfian constant: %.4f over %d keys\n", zipfianConstant, len(keys))
-	keyChooser := generator.NewScrambledZipfian(0, int64(len(keys)-1), zipfianConstant)
+	var keyChooser ycsb.Generator
+	if zipfianConstant == 0.99 {
+		keyChooser = generator.NewScrambledZipfian(0, int64(len(keys)-1), zipfianConstant)
+	} else {
+		keyChooser = generator.NewZipfianWithRange(0, int64(len(keys)-1), zipfianConstant)
+	}
 
 	table := p.GetString(TraceDistTable, p.GetString(prop.TableName, TraceDistTableDefault))
 	fieldName := p.GetString(TraceDistFieldName, TraceDistFieldNameDefault)
