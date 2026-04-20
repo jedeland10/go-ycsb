@@ -52,24 +52,24 @@ timeout "${hard_timeout}" ./bin/go-ycsb run raft \
   | tee -a "$output_file" \
   || echo "BENCH_EXIT_CODE=$?" >> "$output_file"
 
-echo "Sleep 30 seconds before fetching cache hits"
-sleep 30
+echo "Sleep 90 seconds before fetching cache hits"
+sleep 90
 
-# fetch cache hits from raft server (retry up to 3 times)
+# fetch cache hits from raft server (retry up to 6 times, 60s timeout each)
 echo "Fetching cache hits..." >> "$output_file"
-for attempt in 1 2 3; do
-  if timeout 30 go run get_cache_hits.go --addr "$endpoint" 2>&1 | tee -a "$output_file"; then
+for attempt in 1 2 3 4 5 6; do
+  if timeout 60 go run get_cache_hits.go --addr "$endpoint" 2>&1 | tee -a "$output_file"; then
     break
   fi
-  echo "  retry $attempt..." && sleep 10
+  echo "  retry $attempt..." && sleep 20
 done
 
-# fetch restored count from raft server (retry up to 3 times)
+# fetch restored count from raft server
 echo "Fetching restored..." >> "$output_file"
-for attempt in 1 2 3; do
-  if timeout 30 go run get_restored.go --addr "$endpoint" 2>&1 | tee -a "$output_file"; then
+for attempt in 1 2 3 4 5 6; do
+  if timeout 60 go run get_restored.go --addr "$endpoint" 2>&1 | tee -a "$output_file"; then
     break
   fi
-  echo "  retry $attempt..." && sleep 10
+  echo "  retry $attempt..." && sleep 20
 done
 echo "---------------------------------------" >> "$output_file"
